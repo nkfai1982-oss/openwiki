@@ -8,8 +8,7 @@
     "node": ">=22.22.0"
   },
   "bin": {
-    "dhl-openwiki": "./dist/cli/cli.js",
-    "openwiki": "./dist/cli/cli.js"
+    "dhl-openwiki": "./dist/cli/cli.js"
   },
   "repository": {
     "type": "git",
