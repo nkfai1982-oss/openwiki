@@ -369,4 +369,20 @@ describe("createSystemPrompt diagram guidance", () => {
     const init = createSystemPrompt("init");
     expect(init).not.toContain("adding one is a valuable improvement");
   });
+
+  test("injects custom system prompt into local-wiki (personal mode) when env var is set", () => {
+    const originalEnv = process.env.OPENWIKI_CUSTOM_SYSTEM_PROMPT;
+    try {
+      process.env.OPENWIKI_CUSTOM_SYSTEM_PROMPT = "Custom personal guidelines";
+      const prompt = createSystemPrompt("init", "local-wiki");
+      expect(prompt).toContain("Custom documentation standards and structure:");
+      expect(prompt).toContain("Custom personal guidelines");
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.OPENWIKI_CUSTOM_SYSTEM_PROMPT;
+      } else {
+        process.env.OPENWIKI_CUSTOM_SYSTEM_PROMPT = originalEnv;
+      }
+    }
+  });
 });

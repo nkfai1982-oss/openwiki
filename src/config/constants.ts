@@ -83,6 +83,10 @@ export const NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1/";
 export const OPENWIKI_PROVIDER_RETRY_ATTEMPTS_ENV_KEY =
   "OPENWIKI_PROVIDER_RETRY_ATTEMPTS";
 export const OPENWIKI_REASONING_EFFORT_ENV_KEY = "OPENWIKI_REASONING_EFFORT";
+export const OPENWIKI_CUSTOM_SYSTEM_PROMPT_ENV_KEY =
+  "OPENWIKI_CUSTOM_SYSTEM_PROMPT";
+export const OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE_ENV_KEY =
+  "OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE";
 export const DEFAULT_PROVIDER_RETRY_ATTEMPTS = 3;
 /**
  * Model retry count used when several page workers share one provider key and

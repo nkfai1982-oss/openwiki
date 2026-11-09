@@ -1,3 +1,4 @@
+import { resolveCustomSystemPrompt } from "./repository-prompts.js";
 import type { OpenWikiIgnore } from "./openwiki-ignore.js";
 import { CODE_SYSTEM_PROMPTS, CODE_USER_PROMPTS } from "./prompts/code.js";
 import {
@@ -46,10 +47,17 @@ export function createSystemPrompt(
     )
     .trim();
 
+  const customPrompt = resolveCustomSystemPrompt();
+  const customSection = customPrompt
+    ? `\n\nCustom documentation standards and structure:\n${customPrompt}`
+    : "";
+
   return command === "chat"
-    ? prompt
-    : `${prompt}\n\n${createLinkIntegrityInstructions()}`.trim();
+    ? `${prompt}${customSection}`.trim()
+    : `${prompt}${customSection}\n\n${createLinkIntegrityInstructions()}`.trim();
 }
+
+
 
 /**
  * Builds the command-specific user prompt.

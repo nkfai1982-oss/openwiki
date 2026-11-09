@@ -319,8 +319,20 @@ Your wiki stays in the repository as plain Markdown you own, with OpenWiki-manag
 - **Agents read it as context.** On each `code` run, OpenWiki maintains an `AGENTS.md` at the repo root, and refreshes `CLAUDE.md` when the repository already has one. Claude Code reads `AGENTS.md` when no `CLAUDE.md` exists, so OpenWiki does not create one. Their managed instructions use selective, progressive `openwiki_search`/`openwiki_read` retrieval for concrete questions when available and use `openwiki/quickstart.md` as the fallback. OpenWiki only rewrites its own `<!-- OPENWIKI:START -->…<!-- OPENWIKI:END -->` block and leaves the rest of each file untouched.
 - **Grounding stays with the wiki.** Versioned claim sidecars under `openwiki/.claims/` travel with the Markdown, so the evidence needed to maintain factual pages is inspectable and reviewable.
 - **You set the brief.** Repository-specific instructions live in `openwiki/INSTRUCTIONS.md`, a user-authored file OpenWiki reads for scope and priorities but never rewrites during normal runs.
+- **Custom documentation structure & granularity.** Override the repository system prompt via `OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE` or `OPENWIKI_CUSTOM_SYSTEM_PROMPT` to define your own section structure and depth. See the [Custom System Prompt Walkthrough](./docs/custom-system-prompt-walkthrough.md).
 - **No-op runs do not churn docs.** A clean update skips model work and leaves wiki content untouched while refreshing `.last-update.json` to record that the check ran.
 - **Local, private config.** Provider choice, keys, and optional LangSmith tracing are saved to `~/.openwiki/.env` on your machine.
+
+## Custom system prompt & architecture
+
+Override the repository system prompt to define your own documentation folder structure, guide sections, and level or granularity of documentation using environment variables:
+
+- **`OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE`**: Path to a custom Markdown prompt specification (e.g. `custom-system-prompt.md`).
+- **`OPENWIKI_CUSTOM_SYSTEM_PROMPT`**: Direct inline string prompt.
+
+When configured, the planner maps the custom guide sections into planned `/openwiki/` pages, while page workers enforce your granularity and depth requirements. This applies across **both Code Mode and Personal Mode**.
+
+For full implementation details, architectural background, and packaging instructions (as `dhl-openwiki`), see the [Custom System Prompt Walkthrough](./docs/custom-system-prompt-walkthrough.md) and sample [custom-system-prompt.md](./custom-system-prompt.md).
 
 ## Ignoring paths
 

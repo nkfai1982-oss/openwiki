@@ -1017,6 +1017,7 @@ async function runPageWorkerAttempt(
       job,
       run.state.plan?.pages ?? [],
       run.state.language,
+      run.state.wikiGoal,
     ),
   });
 

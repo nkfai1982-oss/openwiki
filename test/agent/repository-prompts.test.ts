@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   createRepositoryPagePrompt,
   createRepositoryPlannerPrompt,
+  resolveCustomSystemPrompt,
   type RepositoryPageWorkerJob,
 } from "../../src/agent/repository-prompts.ts";
 import type { ActiveBeginView } from "../../src/generation/repository-run.ts";
@@ -267,5 +268,65 @@ describe("repository worker prompts", () => {
     expect(
       createRepositoryPagePrompt(allPages[1], allPages, "en"),
     ).not.toContain("The complete planned page map is:");
+  });
+
+  test("resolves custom system prompt from OPENWIKI_CUSTOM_SYSTEM_PROMPT env", () => {
+    const env = {
+      OPENWIKI_CUSTOM_SYSTEM_PROMPT: "Custom architecture instructions",
+    };
+    expect(resolveCustomSystemPrompt(undefined, env)).toBe(
+      "Custom architecture instructions",
+    );
+  });
+
+  test("resolves custom system prompt from OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE env", () => {
+    const env = {
+      OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE: "custom-system-prompt.md",
+    };
+    const resolved = resolveCustomSystemPrompt(process.cwd(), env);
+    expect(resolved).toContain("## Repository and Architecture");
+    expect(resolved).toContain("## Local Development");
+  });
+
+  test("throws when custom prompt file is missing", () => {
+    const env = {
+      OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE: "non-existent-prompt-file.md",
+    };
+    expect(() => resolveCustomSystemPrompt(process.cwd(), env)).toThrow(
+      /Custom system prompt file not found/u,
+    );
+  });
+
+  test("createRepositoryPlannerPrompt structures plan using custom prompt", () => {
+    const customPrompt = "## Section 1\nObjective: test\nGranularity: concise";
+    const prompt = createRepositoryPlannerPrompt(
+      planningView(),
+      undefined,
+      customPrompt,
+    );
+
+    expect(prompt).toContain("<custom_documentation_specification>");
+    expect(prompt).toContain(customPrompt);
+    expect(prompt).toContain(
+      "Organize the repository documentation according to the custom structure",
+    );
+    expect(prompt).not.toContain("/openwiki/architecture/, /openwiki/concepts/");
+  });
+
+  test("createRepositoryPagePrompt includes custom documentation guidelines", () => {
+    const customPrompt =
+      "Granularity: Cover each major module once in a compact table.";
+    const prompt = createRepositoryPagePrompt(
+      pageJob(),
+      [pageJob()],
+      "en",
+      customPrompt,
+    );
+
+    expect(prompt).toContain("<custom_documentation_guidelines>");
+    expect(prompt).toContain(customPrompt);
+    expect(prompt).toContain(
+      "Follow the custom repository documentation standards",
+    );
   });
 });

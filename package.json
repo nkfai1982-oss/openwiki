@@ -1,5 +1,5 @@
 {
-  "name": "openwiki",
+  "name": "dhl-openwiki",
   "version": "0.9.0",
   "description": "A CLI that uses a DeepAgents documentation agent to generate and maintain an OpenWiki for a codebase.",
   "license": "MIT",
@@ -8,6 +8,7 @@
     "node": ">=22.22.0"
   },
   "bin": {
+    "dhl-openwiki": "./dist/cli/cli.js",
     "openwiki": "./dist/cli/cli.js"
   },
   "repository": {
@@ -44,6 +45,7 @@
     ]
   },
   "scripts": {
+    "dhl-openwiki": "node dist/cli/cli.js",
     "openwiki": "node dist/cli/cli.js",
     "build": "node ./node_modules/typescript7/bin/tsc -p tsconfig.json && node ./node_modules/typescript7/bin/tsc -p tsconfig.client.json && node scripts/copy-visualize-assets.cjs",
     "changeset:version": "changeset version",

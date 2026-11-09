@@ -26,6 +26,7 @@ import {
   readOpenWikiOnboardingConfig,
   readRepositoryWikiInstructions,
 } from "../setup/onboarding.js";
+import { resolveCustomSystemPrompt } from "./repository-prompts.js";
 import { OPENWIKI_IGNORE_FILE, OpenWikiIgnore } from "./openwiki-ignore.js";
 import type {
   OpenWikiCommand,
@@ -93,6 +94,11 @@ async function readRunWikiGoal(
   cwd: string,
   outputMode: OpenWikiOutputMode,
 ): Promise<string | undefined> {
+  const customPrompt = resolveCustomSystemPrompt(cwd);
+  if (customPrompt) {
+    return customPrompt;
+  }
+
   if (outputMode === "repository") {
     return readRepositoryWikiInstructions(cwd);
   }

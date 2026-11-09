@@ -1,8 +1,15 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import type { InspectedClaim } from "../claims/brains/code/types.js";
 import {
   CLAIMS_RECONCILIATION_GUIDANCE,
   CLAIMS_SUBSTANCE_GUIDANCE,
 } from "../claims/guidance.js";
+import {
+  OPENWIKI_CUSTOM_SYSTEM_PROMPT_ENV_KEY,
+  OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE_ENV_KEY,
+} from "../config/constants.js";
+import { RepositoryRunError } from "../generation/errors.js";
 import type {
   ActiveBeginView,
   RepositoryPageUpdateWindow,
@@ -15,16 +22,62 @@ const REPOSITORY_LAYOUT = `Repository files are at the filesystem root (for exam
 the wiki lives under /openwiki/. Search and read source outside /openwiki/.`;
 
 /**
+ * Resolves an optional custom system prompt from environment variables.
+ *
+ * Checks `OPENWIKI_CUSTOM_SYSTEM_PROMPT` (inline string) first.
+ * Then checks `OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE` (file path).
+ *
+ * @param rootDir - Optional base directory for resolving relative file paths.
+ * @param env - Process environment (defaults to `process.env`).
+ * @returns Trimmed custom system prompt string, or undefined if not set.
+ */
+export function resolveCustomSystemPrompt(
+  rootDir?: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const inlinePrompt = env[OPENWIKI_CUSTOM_SYSTEM_PROMPT_ENV_KEY]?.trim();
+  if (inlinePrompt) {
+    return inlinePrompt;
+  }
+
+  const filePath = env[OPENWIKI_CUSTOM_SYSTEM_PROMPT_FILE_ENV_KEY]?.trim();
+  if (filePath) {
+    const resolvedPath =
+      rootDir && !path.isAbsolute(filePath)
+        ? path.resolve(rootDir, filePath)
+        : path.resolve(filePath);
+
+    if (!existsSync(resolvedPath)) {
+      throw new RepositoryRunError(
+        "invalid_input",
+        `Custom system prompt file not found: ${resolvedPath}`,
+      );
+    }
+
+    const content = readFileSync(resolvedPath, "utf8").trim();
+    if (content) {
+      return content;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Builds the bounded planner prompt from the complete active run context.
  *
  * @param view - Durable begin/resume context projected for planning.
  * @param planningContext - Actual user and connector context for this run.
+ * @param customPrompt - Optional custom system prompt overriding default architecture.
  * @returns Complete planner system prompt.
  */
 export function createRepositoryPlannerPrompt(
   view: ActiveBeginView,
   planningContext?: string,
+  customPrompt?: string,
 ): string {
+  const effectiveCustomPrompt = customPrompt ?? view.wikiGoal;
+
   const updateContext =
     view.mode === "update"
       ? `
@@ -59,20 +112,35 @@ include it when the user explicitly requests it or when the page map, navigation
 or task-routing links actually change.`
       : "";
 
-  return `You are planning an OpenWiki code wiki for this repository.
+  const architectureSection = effectiveCustomPrompt
+    ? `Organize the repository documentation according to the custom structure, guide sections, and granularity requirements defined below. Map these sections into planned pages under /openwiki/ (using subdirectories if appropriate for multi-page sections). Copy each section's specific objectives, expected content, and granularity rules into that page's instructions array so workers enforce them:
 
-Your only output action is submit_plan. Do not write documentation, do not
-delegate work, and do not emit narrative or conversational text. Invoke
-submit_plan directly.
+<custom_documentation_specification>
+${effectiveCustomPrompt}
+</custom_documentation_specification>
 
-Design the smallest complete repository-specific information architecture that
+Include /openwiki/quickstart.md for init.`
+    : `Design the smallest complete repository-specific information architecture that
 helps a coding agent understand and safely change the system. Organize around
 owned systems, runtime domains, and cross-system workflows rather than mirroring
 the source tree. Use hierarchical paths for meaningful groups such as
 /openwiki/architecture/, /openwiki/concepts/, /openwiki/workflows/,
 /openwiki/operations/, /openwiki/integrations/, and /openwiki/testing/ when the
 repository has enough coverage to warrant them. Do not emit a flat dump of
-unrelated top-level pages. Include /openwiki/quickstart.md for init.
+unrelated top-level pages. Include /openwiki/quickstart.md for init.`;
+
+  const instructionsFooter =
+    view.wikiGoal && view.wikiGoal !== effectiveCustomPrompt
+      ? `\nRepository OpenWiki instructions:\n${view.wikiGoal}\n`
+      : "";
+
+  return `You are planning an OpenWiki code wiki for this repository.
+
+Your only output action is submit_plan. Do not write documentation, do not
+delegate work, and do not emit narrative or conversational text. Invoke
+submit_plan directly.
+
+${architectureSection}
 
 ${REPOSITORY_LAYOUT}
 Every page path is a Markdown file such as
@@ -101,9 +169,7 @@ An update with no required page edits and no deletions may submit pages: [].
 For every page provide a concise purpose and useful seedPaths. seedPaths are
 starting points, not research boundaries. Copy only relevant global constraints
 from the user/connector context into that page's instructions array; do not copy
-unrelated context into every job.${semanticContext}${scopedUpdateContext}${updateContext}
-
-${view.wikiGoal ? `Repository OpenWiki instructions:\n${view.wikiGoal}\n` : ""}`;
+unrelated context into every job.${semanticContext}${scopedUpdateContext}${updateContext}${instructionsFooter}`;
 }
 
 /**
@@ -133,13 +199,22 @@ export type RepositoryPageWorkerJob = PageJob & {
  * @param job - Assigned page and its compact required Claim context.
  * @param allPages - Complete ordered page queue for quickstart navigation.
  * @param language - Resolved output language for generated prose.
+ * @param customPrompt - Optional custom system prompt with granularity guidelines.
  * @returns Complete page-worker system prompt.
  */
 export function createRepositoryPagePrompt(
   job: RepositoryPageWorkerJob,
   allPages: readonly PageJob[],
   language: string,
+  customPrompt?: string,
 ): string {
+  const customGuidance = customPrompt
+    ? `Follow the custom repository documentation standards and granularity guidelines below when researching and authoring this page:
+<custom_documentation_guidelines>
+${customPrompt}
+</custom_documentation_guidelines>\n\n`
+    : "";
+
   return `You own exactly ${job.path}.
 
 Title: ${job.title}
@@ -171,7 +246,7 @@ Do not author generated, verified, sources, timestamp, or OpenWiki control field
 
 ${REPOSITORY_LAYOUT}
 
-Research deeply enough to explain the important responsibilities, entrypoints,
+${customGuidance}Research deeply enough to explain the important responsibilities, entrypoints,
 mechanisms/control flow, relationships, state/lifecycle, invariants/failures,
 extension points, configuration/operations, and focused tests that actually
 matter for this topic. Follow evidence beyond seed paths through callers,
