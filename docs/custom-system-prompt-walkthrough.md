@@ -12,7 +12,7 @@ Sample customized prompt specification: [`custom-system-prompt.md`](../custom-sy
 
 ---
 
-## Configuration
+## Configuration (DHL Customization)
 
 Two environment variables are supported:
 
