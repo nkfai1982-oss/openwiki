@@ -37,8 +37,8 @@ const UNKNOWN_VERSION = "0.0.0-unknown";
  * Reads OpenWiki's own version from its `package.json` at module load, so the
  * runtime version can never drift from the published one. Starts at this
  * module's own location (`import.meta.url`) and walks up the directory tree,
- * accepting the first `package.json` whose `name` is `"openwiki"`. This works
- * from source (`src/version.ts`), from the built `dist/`, and from an installed
+ * accepting the first `package.json` whose `name` is `"openwiki"` or `"dhl-openwiki"`.
+ * This works from source (`src/version.ts`), from the built `dist/`, and from an installed
  * `node_modules/openwiki/dist/`, because every one of those sits below the
  * manifest we are looking for.
  */
@@ -51,7 +51,10 @@ function readOwnVersion(): string {
         readFileSync(path.join(dir, "package.json"), "utf8"),
       ) as OwnPackageJson;
 
-      if (pkg.name === "openwiki" && typeof pkg.version === "string") {
+      if (
+        (pkg.name === "openwiki" || pkg.name === "dhl-openwiki") &&
+        typeof pkg.version === "string"
+      ) {
         return pkg.version;
       }
     } catch {

@@ -63,9 +63,11 @@ dhl-openwiki-0.9.0.tgz
 npm install -g ./dhl-openwiki-0.9.0.tgz
 ```
 
-Verify the binary is available:
+Verify the binary is available (both `dhl-openwiki` and `openwiki` commands are available):
 ```powershell
 dhl-openwiki --help
+# Or using the openwiki alias:
+openwiki --help
 ```
 
 ### 3. Usage with Custom Prompt
